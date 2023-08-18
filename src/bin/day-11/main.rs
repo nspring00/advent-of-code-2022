@@ -29,19 +29,26 @@ impl Monkey {
     fn inspect(&mut self) -> (usize, u64) {
         self.inspect_count += 1;
         let item = self.items.remove(0);
-        //println!("  Monkey inspects an item with a worry level of {}.", item);
         let mut worry_level = (self.operation)(item);
-        //println!("    Worry level is {}.", worry_level);
         worry_level = worry_level / 3;
-        //println!("    Monkey gets bored with item. Worry level is divided by 3 to {}.", worry_level);
         let receiver = if worry_level % self.divider == 0 {
-            //println!("    Current worry level is divisible by {}.", self.divider);
             self.true_monkey
         } else {
-            //println!("    Current worry level is divisible by {}.", self.divider);
             self.false_monkey
         };
-        //println!("    Item with worry level {} is thrown to monkey {}.", worry_level, receiver);
+
+        (receiver, worry_level)
+    }
+
+    fn inspect_2(&mut self, factor: u64) -> (usize, u64) {
+        self.inspect_count += 1;
+        let item = self.items.remove(0);
+        let worry_level = (self.operation)(item) % factor;
+        let receiver = if worry_level % self.divider == 0 {
+            self.true_monkey
+        } else {
+            self.false_monkey
+        };
 
         (receiver, worry_level)
     }
@@ -57,18 +64,15 @@ fn part1(input: &str) -> u32 {
     part1_parsed(&mut parse_input(input))
 }
 
-fn part2(input: &str) -> u32 {
-    0
+fn part2(input: &str) -> u64 {
+    part2_parsed(&mut parse_input(input))
 }
 
 fn part1_parsed(monkeys: &mut [Monkey]) -> u32 {
     let rounds = 20;
 
-    for round in 0..rounds {
-        println!("#### Round {}:", round + 1);
-
+    for _round in 0..rounds {
         for i in 0..monkeys.len() {
-            // println!("Monkey {}:", i);
             let monkey = &mut monkeys[i];
             let mut moved_items = Vec::new();
             while monkey.items.len() > 0 {
@@ -80,14 +84,43 @@ fn part1_parsed(monkeys: &mut [Monkey]) -> u32 {
             }
         }
 
+        /*println!("#### Round {}:", round + 1);
         for monkey in monkeys.iter() {
             println!("Monkey {}: {}", monkey.id, monkey.items.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "));
-        }
+        }*/
     }
 
     let mut inspect_counts = monkeys.iter().map(|x| x.inspect_count).collect::<Vec<_>>();
     inspect_counts.sort();
     inspect_counts[inspect_counts.len() - 1] * inspect_counts[inspect_counts.len() - 2]
+}
+
+fn part2_parsed(monkeys: &mut [Monkey]) -> u64 {
+    let rounds = 10000;
+    let factor = monkeys.iter().map(|x| x.divider).product();
+
+    for _round in 0..rounds {
+        for i in 0..monkeys.len() {
+            let monkey = &mut monkeys[i];
+            let mut moved_items = Vec::new();
+            while monkey.items.len() > 0 {
+                moved_items.push(monkey.inspect_2(factor));
+            }
+
+            for (receiver, worry_level) in moved_items {
+                monkeys[receiver].items.push(worry_level);
+            }
+        }
+
+        /*println!("#### Round {}:", round + 1);
+        for monkey in monkeys.iter() {
+            println!("Monkey {}: {}", monkey.id, monkey.items.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "));
+        }*/
+    }
+
+    let mut inspect_counts = monkeys.iter().map(|x| x.inspect_count).collect::<Vec<_>>();
+    inspect_counts.sort();
+    inspect_counts[inspect_counts.len() - 1] as u64 * inspect_counts[inspect_counts.len() - 2] as u64
 }
 
 fn parse_input(input: &str) -> Vec<Monkey> {
@@ -147,11 +180,14 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        let test_input = &fs::read_to_string("src/bin/day-11/test_input.txt").unwrap();
-        assert_eq!(part1_parsed(&mut parse_input(test_input)), 10605);
+        assert_eq!(part1(&fs::read_to_string("src/bin/day-11/test_input.txt").unwrap()), 10605);
+        assert_eq!(part1(&fs::read_to_string("src/bin/day-11/input.txt").unwrap()), 88208);
+    }
 
-        let input = &fs::read_to_string("src/bin/day-11/input.txt").unwrap();
-        assert_eq!(part1_parsed(&mut parse_input(input)), 88208);
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(&fs::read_to_string("src/bin/day-11/test_input.txt").unwrap()), 2713310158);
+        assert_eq!(part2(&fs::read_to_string("src/bin/day-11/input.txt").unwrap()), 21115867968);
     }
 }
 
