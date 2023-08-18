@@ -43,6 +43,12 @@ impl PartialOrd for Value {
     }
 }
 
+impl Ord for Value {
+fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 fn main() {
     let input = include_str!("input.txt");
     println!("Part 1: {}", part1(input));
@@ -106,7 +112,24 @@ fn parse(symbols: &[Symbol], idx: &mut usize) -> Value {
 }
 
 fn part2(input: &str) -> u32 {
-    0
+    let mut values = input.lines()
+        .filter(|x| x.len() > 0)
+        .map(|x| x.as_bytes())
+        .map(lex)
+        .map(|x| parse(&x, &mut 1))
+        .collect::<Vec<_>>();
+
+    values.push(Value::Seq(vec![Value::Seq(vec![Value::Nr(2)])]));
+    values.push(Value::Seq(vec![Value::Seq(vec![Value::Nr(6)])]));
+
+    values.sort();
+
+    // println!("{:}", values.iter().map(|x| x.to_string()).collect::<Vec<_>>().join("\n"));
+
+    let p1 = values.iter().position(|x| *x == Value::Seq(vec![Value::Seq(vec![Value::Nr(2)])])).unwrap();
+    let p2 = values.iter().position(|x| *x == Value::Seq(vec![Value::Seq(vec![Value::Nr(6)])])).unwrap();
+
+    (p1 as u32 + 1) * (p2 as u32 + 1)
 }
 
 #[cfg(test)]
@@ -124,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        // assert_eq!(part2(TEST_INPUT_1), 0);
-        // assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2(TEST_INPUT_1), 140);
+        assert_eq!(part2(INPUT), 24805);
     }
 }
