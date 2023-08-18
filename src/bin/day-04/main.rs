@@ -1,5 +1,3 @@
-use std::fs;
-
 #[derive(Debug)]
 struct Section {
     start: i32,
@@ -7,7 +5,7 @@ struct Section {
 }
 
 fn main() {
-    let input = fs::read_to_string("input.txt").unwrap();
+    let input = include_str!("input.txt");
     println!("Part 1: {}", part1(&input));
     println!("Part 2: {}", part2(&input));
 }
@@ -63,12 +61,12 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1("2-4,6-8\n2-3,4-5\n5-7,7-9\n2-8,3-7\n6-6,4-6\n2-6,4-8"), 2);
-        assert_eq!(part1(&fs::read_to_string("src/bin/day-04/input.txt").unwrap()), 534);
+        assert_eq!(part1(include_str!("input.txt")), 534);
     }
 
     #[test]
     fn test_part2() {
         assert_eq!(part2("2-4,6-8\n2-3,4-5\n5-7,7-9\n2-8,3-7\n6-6,4-6\n2-6,4-8"), 4);
-        assert_eq!(part2(&fs::read_to_string("src/bin/day-04/input.txt").unwrap()), 841);
+        assert_eq!(part2(include_str!("input.txt")), 841);
     }
 }

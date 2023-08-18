@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::fs;
 use std::str::FromStr;
 use regex::Regex;
 
@@ -55,7 +54,7 @@ impl Monkey {
 }
 
 fn main() {
-    let input = fs::read_to_string("input.txt").unwrap();
+    let input = include_str!("input.txt");
     println!("Part 1: {}", part1(&input));
     println!("Part 2: {}", part2(&input));
 }
@@ -161,7 +160,6 @@ fn re_capture_1<T: FromStr>(re: &Regex, line: &str) -> T where <T as FromStr>::E
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use super::*;
 
     fn parsed_test_input() -> [Monkey; 4] {
@@ -180,14 +178,14 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        assert_eq!(part1(&fs::read_to_string("src/bin/day-11/test_input.txt").unwrap()), 10605);
-        assert_eq!(part1(&fs::read_to_string("src/bin/day-11/input.txt").unwrap()), 88208);
+        assert_eq!(part1(include_str!("test_input.txt")), 10605);
+        assert_eq!(part1(include_str!("input.txt")), 88208);
     }
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(&fs::read_to_string("src/bin/day-11/test_input.txt").unwrap()), 2713310158);
-        assert_eq!(part2(&fs::read_to_string("src/bin/day-11/input.txt").unwrap()), 21115867968);
+        assert_eq!(part2(include_str!("test_input.txt")), 2713310158);
+        assert_eq!(part2(include_str!("input.txt")), 21115867968);
     }
 }
 

@@ -1,5 +1,3 @@
-use std::fs;
-
 #[derive(PartialEq, Debug)]
 enum Hand {
     Rock,
@@ -8,7 +6,7 @@ enum Hand {
 }
 
 fn main() {
-    let input = fs::read_to_string("input.txt").unwrap();
+    let input = include_str!("input.txt");
     println!("Part 1: {}", part1(&input));
     println!("Part 2: {}", part2(&input));
 }
@@ -100,12 +98,12 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1("A Y\nB X\nC Z"), 15);
-        assert_eq!(part1(&fs::read_to_string("src/bin/day-02/input.txt").unwrap()), 11841);
+        assert_eq!(part1(include_str!("input.txt")), 11841);
     }
 
     #[test]
     fn test_part2() {
         assert_eq!(part2("A Y\nB X\nC Z"), 12);
-        assert_eq!(part2(&fs::read_to_string("src/bin/day-02/input.txt").unwrap()), 13022);
+        assert_eq!(part2(include_str!("input.txt")), 13022);
     }
 }

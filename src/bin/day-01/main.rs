@@ -1,7 +1,5 @@
-use std::fs;
-
 fn main() {
-    let input = fs::read_to_string("input.txt").unwrap();
+    let input = include_str!("input.txt");
     println!("Part 1: {}", part1(&input));
     println!("Part 2: {}", part2(&input));
 }
@@ -46,12 +44,12 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1("1000\n2000\n3000\n\n4000\n\n5000\n6000\n\n7000\n8000\n9000\n\n10000"), 24000);
-        assert_eq!(part1(&fs::read_to_string("src/bin/day-01/input.txt").unwrap()), 70296);
+        assert_eq!(part1(include_str!("input.txt")), 70296);
     }
 
     #[test]
     fn test_part2() {
         assert_eq!(part2("1000\n2000\n3000\n\n4000\n\n5000\n6000\n\n7000\n8000\n9000\n\n10000"), 45000);
-        assert_eq!(part2(&fs::read_to_string("src/bin/day-01/input.txt").unwrap()), 205381);
+        assert_eq!(part2(include_str!("input.txt")), 205381);
     }
 }

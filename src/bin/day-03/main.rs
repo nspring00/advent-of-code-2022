@@ -1,8 +1,7 @@
 use std::collections::HashSet;
-use std::fs;
 
 fn main() {
-    let input = fs::read_to_string("input.txt").unwrap();
+    let input = include_str!("input.txt");
     println!("Part 1: {}", part1(&input));
     println!("Part 2: {}", part2(&input));
 }
@@ -59,13 +58,13 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1(TEST_INPUT_1), 157);
-        assert_eq!(part1(&fs::read_to_string("src/bin/day-03/input.txt").unwrap()), 8233);
+        assert_eq!(part1(include_str!("input.txt")), 8233);
     }
 
     #[test]
     fn test_part2() {
         assert_eq!(part2(TEST_INPUT_1), 70);
-        assert_eq!(part2(&fs::read_to_string("src/bin/day-03/input.txt").unwrap()), 2821);
+        assert_eq!(part2(include_str!("input.txt")), 2821);
     }
 
     #[test]
