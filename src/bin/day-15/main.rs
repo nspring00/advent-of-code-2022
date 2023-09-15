@@ -3,7 +3,7 @@ use regex::Regex;
 fn main() {
     let input = include_str!("input.txt");
     println!("Part 1: {}", part1::<2000000>(input));
-    println!("Part 2: {}", part2(input));
+    println!("Part 2: {}", part2::<4000000>(input));
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -70,8 +70,44 @@ fn part1<const ROW: i32>(input: &str) -> u32 {
     intervals.distinct_values_without(&beacons.iter().filter_map(|x| if x.pos.1 == ROW { Some(x.pos.0) } else { None }).collect::<Vec<_>>())
 }
 
-fn part2(input: &str) -> u32 {
-    0
+fn manhattan_dist(a: &(i32, i32), b: &(i32, i32)) -> i32 {
+    (a.0 - b.0).abs() + (a.1 - b.1).abs()
+}
+
+fn intersect(a: &Sensor, b: &Sensor) -> Vec<(i32, i32)> {
+    [intersection_points(a, b), intersection_points(b, a)].concat()
+}
+
+fn intersection_points(a: &Sensor, b: &Sensor) -> [(i32, i32); 4] {
+    let d1 = a.range + 1;
+    let d2 = b.range + 1;
+    let dxs = [
+        (a.pos.0 - d1, b.pos.0 - d2),
+        (a.pos.0 - d1, b.pos.0 + d2),
+        (a.pos.0 + d1, b.pos.0 - d2),
+        (a.pos.0 + d1, b.pos.0 + d2),
+    ];
+
+    dxs.map(|(x1, x2)| ((x2 + b.pos.1 + x1 - a.pos.1) / 2, (x2 + b.pos.1 - x1 + a.pos.1) / 2))
+}
+
+fn part2<const BOUND: i32>(input: &str) -> u64 {
+    // Borrowed some math from https://jactl.io/blog/2023/04/20/advent-of-code-2022-day15.html
+    let (sensors, _beacons) = &parse(input);
+    let results = sensors.iter()
+        .flat_map(|s|
+        sensors.iter()
+            .flat_map(|s2|
+                intersect(s, s2)
+            )
+            .filter(|(x, y)| 0 <= *x && *x <= BOUND && 0 <= *y && *y <= BOUND)
+            .filter(|p1| sensors.iter().all(|b| manhattan_dist(p1, &b.pos) > b.range))
+        )
+        .collect::<Vec<_>>();
+    // results.sort_unstable();
+    // results.dedup();
+
+    results[0].0 as u64 * 4000000 + results[0].1 as u64
 }
 
 fn parse(input: &str) -> (Vec<Sensor>, Vec<Beacon>) {
@@ -108,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        // assert_eq!(part2(TEST_INPUT_1), 0);
-        // assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2::<20>(TEST_INPUT_1), 56000011);
+        assert_eq!(part2::<4000000>(INPUT), 12625383204261);
     }
 }
