@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 fn main() {
     let input = include_str!("input.txt");
@@ -31,14 +31,12 @@ impl Rock {
     }
 }
 
-fn part1(input: &str) -> u32 {
-    const N_ROCKS: u32 = 2022;
-    // const N_ROCKS: u32 = 20;
+fn simulate<const N_ROCKS: u64>(input: &str) -> u64 {
     const N_COLS: usize = 7;
 
     let directions = input.trim().chars().collect::<Vec<_>>();
 
-    let mut heights: [HashSet<i32>; N_COLS] = [
+    let mut heights: [HashSet<i64>; N_COLS] = [
         HashSet::from([-1]),
         HashSet::from([-1]),
         HashSet::from([-1]),
@@ -47,6 +45,8 @@ fn part1(input: &str) -> u32 {
         HashSet::from([-1]),
         HashSet::from([-1])
     ];
+
+    let mut column_heights = [0i64; N_COLS];
 
     // let dummy_rock = Rock::dummy();
 
@@ -58,14 +58,22 @@ fn part1(input: &str) -> u32 {
         Rock::new(vec![(0, 0), (0, 1), (1, 0), (1, 1)]),
     ];
 
-    let mut step = 0u32;
-    let mut max_y = -1i32;
+    let mut step = 0u64;
+    let mut max_y = -1i64;
 
     // print_field::<N_COLS>(&heights, 2, 3, &rocks[4]);
     // return 0;
 
-    for i in 0..N_ROCKS {
-        let rock = &rocks[i as usize % rocks.len()];
+    let mut cycle_cache = HashMap::new();
+    let mut height_offset = 0u64;
+
+    let mut i = 0u64;
+    while i < N_ROCKS {
+        let rock = &rocks[(i % rocks.len() as u64) as usize];
+
+        // if i % 100000 == 0 {
+        //     println!("Rock #{}:", i + 1);
+        // }
 
         // println!("Rock #{}:", i + 1);
 
@@ -75,8 +83,11 @@ fn part1(input: &str) -> u32 {
         // print_field::<N_COLS>(&heights, max_y, x, y, rock);
 
         loop {
-            let direction = directions[(step % directions.len() as u32) as usize];
+            let direction = directions[step as usize];
             step += 1;
+            if step >= directions.len() as u64 {
+                step -= directions.len() as u64;
+            }
 
             let old_x = x;
             if direction == '<' {
@@ -100,7 +111,7 @@ fn part1(input: &str) -> u32 {
             // Check if any rock tile collides with the new position
             let mut collision = false;
             for (rock_x, rock_y) in &rock.tiles {
-                if heights[x + *rock_x as usize].contains(&(y + *rock_y)) {
+                if heights[x + *rock_x as usize].contains(&(y + *rock_y as i64)) {
                     collision = true;
                     break;
                 }
@@ -116,42 +127,63 @@ fn part1(input: &str) -> u32 {
             y -= 1;
             let mut collision = false;
             for (rock_x, rock_y) in &rock.tiles {
-                if heights[x + *rock_x as usize].contains(&(y + *rock_y)) {
+                if heights[x + *rock_x as usize].contains(&(y + *rock_y as i64)) {
                     collision = true;
                     break;
                 }
             }
-            if collision {
-                y += 1;
-                for (rock_x, rock_y) in &rock.tiles {
-                    heights[x + *rock_x as usize].insert(y + *rock_y);
-                    max_y = max_y.max(y + *rock_y);
-                }
+            if !collision {
 
-                // println!("Rock falls 1 unit, causing it to come to rest:");
-                // println!("{:?}", heights);
-                // print_field::<N_COLS>(&heights, max_y, x, y, &dummy_rock);
-                break;
+                // println!("Rock falls 1 unit:");
+                // print_field::<N_COLS>(&heights, max_y, x, y, rock);
+                continue;
             }
 
-            // println!("Rock falls 1 unit:");
-            // print_field::<N_COLS>(&heights, max_y, x, y, rock);
+            // Rock comes to rest
+            y += 1;
+            for (rock_x, rock_y) in &rock.tiles {
+                heights[x + *rock_x as usize].insert(y + *rock_y as i64);
+                max_y = max_y.max(y + *rock_y as i64);
+                column_heights[x + *rock_x as usize] = column_heights[x + *rock_x as usize].max(y + *rock_y as i64);
+            }
+
+            // println!("Rock falls 1 unit, causing it to come to rest:");
+            // println!("{:?}", heights);
+            i += 1;
+
+            // Store a combined key of the active rock (index), the current direction (index),
+            // and the current column heights (absolute difference from max_y)
+            // Try to detect cycles in the rock movement and the use this knowledge to skip
+            // ahead in the simulation
+
+            // // println!("{:?}", key);
+            // // print_field::<N_COLS>(&heights, max_y, x, y, &dummy_rock);
+            let key = ((i % rocks.len() as u64), step, column_heights.map(|x| max_y - x));
+            if let Some((idx, height)) = cycle_cache.get(&key) {
+                let repeats = (N_ROCKS - idx) / (i - *idx) - 1;
+                i += repeats * (i - *idx);
+                height_offset += repeats * (max_y - *height) as u64;
+            } else {
+                cycle_cache.insert(key, (i, max_y));
+            }
+
+            break;
         }
     }
 
 
-    max_y as u32 + 1
+    max_y as u64 + 1 + height_offset
 }
 
-fn print_field<const N_COLS: usize>(tiles: &[HashSet<i32>; N_COLS], max_height: i32, rock_x: usize, rock_y: i32, rock: &Rock) {
-    let max_y = (rock_y + rock.height).max(max_height + 1);
+fn print_field<const N_COLS: usize>(tiles: &[HashSet<i64>; N_COLS], max_height: i64, rock_x: usize, rock_y: i64, rock: &Rock) {
+    let max_y = (rock_y + rock.height as i64).max(max_height + 1);
 
     for y in (0..max_y).rev() {
         print!("|");
         for x in 0..N_COLS {
             if tiles[x].contains(&y) {
                 print!("#");
-            } else if rock.tiles.contains(&(x as i32 - rock_x as i32, y - rock_y)) {
+            } else if rock.tiles.contains(&(x as i32 - rock_x as i32, (y - rock_y) as i32)) {
                 print!("@");
             } else {
                 print!(".");
@@ -162,8 +194,12 @@ fn print_field<const N_COLS: usize>(tiles: &[HashSet<i32>; N_COLS], max_height: 
     println!("+-------+\n");
 }
 
-fn part2(input: &str) -> u32 {
-    0
+fn part1(input: &str) -> u64 {
+    simulate::<2022>(input)
+}
+
+fn part2(input: &str) -> u64 {
+    simulate::<1000000000000>(input)
 }
 
 #[cfg(test)]
@@ -181,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(TEST_INPUT_1), 0);
-        assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2(TEST_INPUT_1), 1514285714288);
+        assert_eq!(part2(INPUT), 1514369501484);
     }
 }
