@@ -1,6 +1,6 @@
 use std::cmp::min;
 use std::collections::HashMap;
-use std::ops::Index;
+use std::fmt::Debug;
 use itertools::{enumerate, Itertools};
 use regex::Regex;
 
@@ -169,12 +169,80 @@ fn parse_input(input: &str) -> (HashMap<String, Valve>, Vec<Vec<u32>>) {
     (valves, distances)
 }
 
+struct ValveSystem2<'a> {
+    valves: Vec<String>,
+    tunnels: HashMap<&'a str, Vec<&'a str>>,
+    flow_rates: HashMap<&'a str, u32>,
+    mask_values: HashMap<&'a str, u32>,
+    distances: HashMap<&'a str, HashMap<&'a str, u32>>,
+}
+
+fn parse_input2(input: &str) -> ValveSystem2 {
+    let re = Regex::new(r"^Valve (.+) has flow rate=(\d+);.*to valves? (.*)$").unwrap();
+    let valves_raw = input.lines()
+        .map(|x| re.captures(x).map(|caps| {
+            let (_, [label, flow_rate, next_valves_str]) = caps.extract();
+            let next_valves = next_valves_str.split(", ").collect::<Vec<_>>();
+            (label, flow_rate.parse::<u32>().unwrap(), next_valves)
+        }).unwrap())
+        .collect::<Vec<_>>();
+
+    let valves = valves_raw.iter().map(|(label, _, _)| label.to_string()).collect::<Vec<_>>();
+
+    let tunnels = valves_raw.iter().map(|(label, _, next_valves)| (*label, next_valves.clone())).collect::<HashMap<_, _>>();
+
+    let flow_rates = valves_raw.iter().filter(|(_, flow_rate, _)| *flow_rate != 0).map(|(label, flow_rate, _)| (*label, *flow_rate)).collect::<HashMap<_, _>>();
+
+    let mask_values = flow_rates.iter().enumerate().map(|(i, x)| (*(x.0), 1 << i)).collect::<HashMap<_, _>>();
+
+    // Compute a distance matrix between all valves using Floyd-Warshall
+    let mut distances = tunnels.keys().map(|x| (*x, tunnels.keys().map(|y| (*y, 1000u32)).collect::<HashMap<_, _>>())).collect::<HashMap<_, _>>();
+    for (x, ys) in tunnels.iter() {
+        distances.get_mut(x).unwrap().insert(*x, 0);
+        for y in ys {
+            distances.get_mut(x).unwrap().insert(*y, 1);
+        }
+    }
+    for k in tunnels.keys() {
+        for i in tunnels.keys() {
+            for j in tunnels.keys() {
+                let new_dist = distances[i][j].min(distances[k][j] + distances[i][k]);
+                distances.get_mut(i).unwrap().insert(*j, new_dist);
+            }
+        }
+    }
+
+    ValveSystem2 {
+        valves,
+        tunnels,
+        flow_rates,
+        mask_values,
+        distances,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const TEST_INPUT_1: &str = include_str!("test_input.txt");
     const INPUT: &str = include_str!("input.txt");
+
+    #[test]
+    fn test_parse_input2() {
+        let input = "Valve AA has flow rate=0; tunnels lead to valves BB\n\
+                            Valve BB has flow rate=13; tunnels lead to valves AA, CC\n\
+                            Valve CC has flow rate=2; tunnels lead to valves BB";
+        let valve_system = parse_input2(input);
+        assert_eq!(valve_system.valves, vec!["AA", "BB", "CC"]);
+        assert_eq!(valve_system.tunnels, vec![("AA", vec!["BB"]), ("BB", vec!["AA", "CC"]), ("CC", vec!["BB"])].into_iter().collect::<HashMap<_, _>>());
+        assert_eq!(valve_system.flow_rates, vec![("BB", 13), ("CC", 2)].into_iter().collect::<HashMap<_, _>>());
+        assert_eq!(valve_system.distances, vec![("AA", vec![("AA", 0), ("BB", 1), ("CC", 2)].into_iter().collect::<HashMap<_, _>>()), ("BB", vec![("AA", 1), ("BB", 0), ("CC", 1)].into_iter().collect::<HashMap<_, _>>()), ("CC", vec![("AA", 2), ("BB", 1), ("CC", 0)].into_iter().collect::<HashMap<_, _>>())].into_iter().collect::<HashMap<_, _>>());
+
+        // Assert that every key in the bitmask has a unique value and is a power of 2
+        assert_eq!(valve_system.mask_values.values().unique().count(), valve_system.mask_values.len());
+        assert!(valve_system.mask_values.values().all(|x| x.is_power_of_two()));
+    }
 
     #[test]
     fn test_path_eval() {
