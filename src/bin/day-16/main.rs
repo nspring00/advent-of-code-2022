@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use itertools::iproduct;
 use regex::Regex;
 
 fn main() {
@@ -40,11 +41,22 @@ fn part1(input: &str) -> u32 {
 }
 
 fn part2(input: &str) -> u32 {
-    0
+
+    // For part 2, the valves that we and the elephant opened must be distinct
+    // From these combination of states, find the one with the maximum flow sum
+
+    let system = parse_input2(input);
+    let mut answer = HashMap::new();
+    part1_rec("AA", 26, 0, 0, &mut answer, &system);
+
+    iproduct!(&answer, &answer)
+        .filter(|((state1, _), (state2, _))| *state1 & *state2 == 0)
+        .map(|((_, flow1), (_, flow2))| flow1 + flow2)
+        .max()
+        .unwrap()
 }
 
 struct ValveSystem2<'a> {
-    tunnels: HashMap<&'a str, Vec<&'a str>>,
     flow_rates: HashMap<&'a str, u32>,
     mask_values: HashMap<&'a str, u32>,
     distances: HashMap<&'a str, HashMap<&'a str, u32>>,
@@ -84,7 +96,6 @@ fn parse_input2(input: &str) -> ValveSystem2 {
     }
 
     ValveSystem2 {
-        tunnels,
         flow_rates,
         mask_values,
         distances,
@@ -105,7 +116,6 @@ mod tests {
                             Valve BB has flow rate=13; tunnels lead to valves AA, CC\n\
                             Valve CC has flow rate=2; tunnels lead to valves BB";
         let valve_system = parse_input2(input);
-        assert_eq!(valve_system.tunnels, vec![("AA", vec!["BB"]), ("BB", vec!["AA", "CC"]), ("CC", vec!["BB"])].into_iter().collect::<HashMap<_, _>>());
         assert_eq!(valve_system.flow_rates, vec![("BB", 13), ("CC", 2)].into_iter().collect::<HashMap<_, _>>());
         assert_eq!(valve_system.distances, vec![("AA", vec![("AA", 0), ("BB", 1), ("CC", 2)].into_iter().collect::<HashMap<_, _>>()), ("BB", vec![("AA", 1), ("BB", 0), ("CC", 1)].into_iter().collect::<HashMap<_, _>>()), ("CC", vec![("AA", 2), ("BB", 1), ("CC", 0)].into_iter().collect::<HashMap<_, _>>())].into_iter().collect::<HashMap<_, _>>());
 
@@ -122,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(TEST_INPUT_1), 0);
-        assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2(TEST_INPUT_1), 1707);
+        assert_eq!(part2(INPUT), 2528);
     }
 }
