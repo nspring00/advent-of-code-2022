@@ -16,7 +16,7 @@ fn part1(input: &str) -> u32 {
     let mut surfaces = 0;
     for (x, y, z) in cubes.iter() {
         for (dx, dy, dz) in &[(0, 0, 1), (0, 0, -1), (0, 1, 0),
-                              (0, -1, 0), (1, 0, 0), (-1, 0, 0)] {
+            (0, -1, 0), (1, 0, 0), (-1, 0, 0)] {
             if !cubes.contains(&(x + dx, y + dy, z + dz)) {
                 surfaces += 1;
             }
@@ -27,7 +27,48 @@ fn part1(input: &str) -> u32 {
 }
 
 fn part2(input: &str) -> u32 {
-    0
+    let cubes = input.lines()
+        .map(|line| line.split(",")
+            .map(|s| s.parse::<i32>().unwrap()))
+        .map(|mut coords| (coords.next().unwrap(), coords.next().unwrap(), coords.next().unwrap()))
+        .collect::<HashSet<_>>();
+
+    let min_x = *cubes.iter().map(|(x, _, _)| x).min().unwrap();
+    let max_x = *cubes.iter().map(|(x, _, _)| x).max().unwrap();
+    let min_y = *cubes.iter().map(|(_, y, _)| y).min().unwrap();
+    let max_y = *cubes.iter().map(|(_, y, _)| y).max().unwrap();
+    let min_z = *cubes.iter().map(|(_, _, z)| z).min().unwrap();
+    let max_z = *cubes.iter().map(|(_, _, z)| z).max().unwrap();
+
+    // Count the number of surfaces of the cubes that are facing the outside
+    let mut surfaces = 0;
+    let mut visited = HashSet::new();
+    let mut queue = Vec::new();
+    queue.push((min_x - 1, min_y - 1, min_z - 1));
+    while let Some((x, y, z)) = queue.pop() {
+        if x < min_x - 1 || x > max_x + 1 || y < min_y - 1 || y > max_y + 1 || z < min_z - 1 || z > max_z + 1 {
+            continue;
+        }
+
+        if visited.contains(&(x, y, z)) {
+            continue;
+        }
+
+        visited.insert((x, y, z));
+
+        assert!(!cubes.contains(&(x, y, z)));
+
+        for (dx, dy, dz) in
+        &[(0, 0, 1), (0, 0, -1), (0, 1, 0), (0, -1, 0), (1, 0, 0), (-1, 0, 0)] {
+            if cubes.contains(&(x + dx, y + dy, z + dz)) {
+                surfaces += 1;
+            } else {
+                queue.push((x + dx, y + dy, z + dz));
+            }
+        }
+    }
+
+    surfaces
 }
 
 #[cfg(test)]
@@ -45,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(TEST_INPUT_1), 0);
-        assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2(TEST_INPUT_1), 58);
+        assert_eq!(part2(INPUT), 2118);
     }
 }
