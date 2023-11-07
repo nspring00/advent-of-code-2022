@@ -4,40 +4,47 @@ fn main() {
     println!("Part 2: {}", part2(input));
 }
 
-fn part1(input: &str) -> u32 {
-    let mut nums = input.lines().map(|x| x.parse::<i32>().unwrap()).enumerate().collect::<Vec<_>>();
+fn solve<const ROUNDS: u8>(nums: &[i64]) -> u64 {
+    let mut nums: Vec<(usize, &i64)> = nums.iter().enumerate().collect::<Vec<_>>();
 
-    let modulo = nums.len() as i32 - 1;
+    let modulo = nums.len() as i64 - 1;
 
-    for idx in 0..nums.len() {
+    for _ in 0..ROUNDS {
+        for idx in 0..nums.len() {
+            let (old_i, (_, &value)) = nums.iter().enumerate().find(|(_, i)| i.0 == idx).unwrap();
+            let new_i = (old_i as i64 + value).rem_euclid(modulo) as usize;
 
-        let (old_i, (_, value)) = nums.iter().enumerate().find(|(_, i)| i.0 == idx).unwrap();
-        let new_i = (old_i as i32 + value).rem_euclid(modulo) as usize;
-
-        // Learned about slice rotates from https://github.com/agubelu/Advent-of-Code-2022/blob/master/src/days/day20.rs
-        if new_i > old_i {
+            // Learned about slice rotates from https://github.com/agubelu/Advent-of-Code-2022/blob/master/src/days/day20.rs
             // println!("{} -> {} left", old_i, new_i);
             // println!("Before: {:?} {:?}", nums, indices);
-            nums[old_i..=new_i].rotate_left(1);
+            if new_i > old_i {
+                nums[old_i..=new_i].rotate_left(1);
+            } else if new_i < old_i {
+                nums[new_i..=old_i].rotate_right(1);
+            }
             // println!("After:  {:?} {:?}", nums, indices);
-        } else if new_i < old_i {
-            // println!("{} -> {} right", old_i, new_i);
-            // println!("Before: {:?} {:?}", nums, indices);
-            nums[new_i..=old_i].rotate_right(1);
-            // println!("After:  {:?} {:?}", nums, indices);
+
+            // Alternative solution: remove and insert
+            // let removed = nums.remove(old_i);
+            // nums.insert(new_i, removed);
         }
     }
 
-    let zero_pos = nums.iter().position(|(_, i)| *i == 0).unwrap();
-    let result: i32 = [1000, 2000, 3000].into_iter()
+    let zero_pos = nums.iter().position(|(_, &i)| i == 0).unwrap();
+    let result: i64 = [1000, 2000, 3000].into_iter()
         .map(|x| nums[(zero_pos + x) % nums.len()].1)
         .sum();
 
-    result as u32
+    result as u64
 }
 
-fn part2(input: &str) -> u32 {
-    0
+fn part1(input: &str) -> u64 {
+    solve::<1>(&input.trim().lines().map(|l| l.parse().unwrap()).collect::<Vec<_>>())
+}
+
+fn part2(input: &str) -> u64 {
+    let key = 811_589_153;
+    solve::<10>(&input.trim().lines().map(|l| key * l.parse::<i64>().unwrap()).collect::<Vec<_>>())
 }
 
 #[cfg(test)]
@@ -55,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(TEST_INPUT_1), 0);
-        assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2(TEST_INPUT_1), 1623178306);
+        assert_eq!(part2(INPUT), 4265712588168);
     }
 }
