@@ -45,20 +45,16 @@ fn part1(input: &str) -> u64 {
     part1_rec("root", &monkeys, &mut HashMap::new())
 }
 
-fn part2_rec<'a>(name: &'a str, monkeys: &'a HashMap<&str, &str>, monkeys_eval: &mut HashMap<&'a str, u64>) -> Option<u64> {
-    if name == "humn" {
-        return None;
-    }
-
+fn part2_rec<'a>(name: &'a str, monkeys: &'a HashMap<&str, &str>, monkeys_eval: &mut HashMap<&'a str, Option<u64>>) -> Option<u64> {
     if monkeys_eval.contains_key(name) {
-        return Some(monkeys_eval[name]);
+        return monkeys_eval[name];
     }
 
     let raw = monkeys[name];
     let parts = raw.split(" ").collect::<Vec<_>>();
     if parts.len() == 1 {
         let value = parts[0].parse::<u64>().unwrap();
-        monkeys_eval.insert(name, value);
+        monkeys_eval.insert(name, Some(value));
         return Some(value);
     }
 
@@ -67,12 +63,8 @@ fn part2_rec<'a>(name: &'a str, monkeys: &'a HashMap<&str, &str>, monkeys_eval: 
     let v1 = part2_rec(parts[0], monkeys, monkeys_eval);
     let v2 = part2_rec(parts[2], monkeys, monkeys_eval);
 
-    if name == "root" {
-        println!("{}: {:?} {:?}", name, v1, v2);
-        assert!(v1.is_some() || v2.is_some());
-    }
-
     if v1.is_none() || v2.is_none() {
+        monkeys_eval.insert(name, None);
         return None;
     }
 
@@ -87,11 +79,11 @@ fn part2_rec<'a>(name: &'a str, monkeys: &'a HashMap<&str, &str>, monkeys_eval: 
         _ => panic!("Unknown operator: {}", parts[2]),
     };
 
-    monkeys_eval.insert(name, val);
+    monkeys_eval.insert(name, Some(val));
     Some(val)
 }
 
-fn part2_target_rec<'a>(name: &'a str, target: u64, monkeys: &'a HashMap<&str, &str>, monkeys_eval: &mut HashMap<&'a str, u64>) -> u64 {
+fn part2_target_rec<'a>(name: &'a str, target: u64, monkeys: &'a HashMap<&str, &str>, monkeys_eval: &mut HashMap<&'a str, Option<u64>>) -> u64 {
     if name == "humn" {
         return target;
     }
@@ -104,8 +96,6 @@ fn part2_target_rec<'a>(name: &'a str, target: u64, monkeys: &'a HashMap<&str, &
     assert!((v1.is_some() && v2.is_none()) || (v1.is_none() && v2.is_some()));
 
     if name == "root" {
-        println!("{}: {:?} {:?}", name, v1, v2);
-
         return if v1.is_some() {
             part2_target_rec(parts[2], v1.unwrap(), monkeys, monkeys_eval)
         } else {
@@ -142,7 +132,9 @@ fn part2(input: &str) -> u64 {
         .map(|mut s| (s.next().unwrap(), s.next().unwrap()))
         .collect::<HashMap<_, _>>();
 
-    part2_target_rec("root", 0, &monkeys, &mut HashMap::new())
+    let mut monkeys_eval = &mut HashMap::new();
+    monkeys_eval.insert("humn", None);
+    part2_target_rec("root", 0, &monkeys, &mut monkeys_eval)
 }
 
 #[cfg(test)]
