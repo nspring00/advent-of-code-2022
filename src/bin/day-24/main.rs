@@ -15,70 +15,26 @@ enum Direction {
 }
 
 fn part1(input: &str) -> u32 {
-    let field = input.lines()
-        .map(|line| line.chars().collect::<Vec<_>>())
-        .collect::<Vec<_>>();
-
-    let mut storms = field.iter()
-        .enumerate()
-        .flat_map(|(y, row)| {
-            row.iter()
-                .enumerate()
-                .filter(|(_, &cell)| cell != '#' && cell != '.')
-                .map(move |(x, &cell)| (y, x, match cell {
-                    '^' => Direction::Up,
-                    'v' => Direction::Down,
-                    '<' => Direction::Left,
-                    '>' => Direction::Right,
-                    _ => unreachable!(),
-                }))
-        })
-        .collect::<Vec<_>>();
-
-    let mut obstacle_field = field.iter().map(|row| {
-        row.into_iter().map(|&cell| cell == '#').collect::<Vec<_>>()
-    }).collect::<Vec<_>>();
-
-    for &(y, x, _) in &storms {
-        obstacle_field[y][x] = true;
-    }
-
-    let mut obstacle_fields = vec![obstacle_field];
-    loop {
-        let (storms_new, obstacle_field) = move_storms(&storms, &field);
-        if obstacle_field == obstacle_fields[0] {
-            break;
-        }
-        storms = storms_new;
-        obstacle_fields.push(obstacle_field);
-    }
-
-    // for (i, obstacle_field) in obstacle_fields.iter().enumerate() {
-    //     // Print field
-    //     println!("After {} minutes:", i);
-    //     for row in obstacle_field {
-    //         for cell in row {
-    //             print!("{}", if *cell { '#' } else { '.' });
-    //         }
-    //         println!();
-    //     }
-    //     println!();
-    // }
+    let obstacle_fields = parse_input(input);
 
     let start = (0, 1);
-    let target = (field.len() - 1, field[0].len() - 2);
+    let target = (obstacle_fields[0].len() - 1, obstacle_fields[0][0].len() - 2);
 
+    shortest_path(start, target, &obstacle_fields, 0) as u32
+}
+
+fn shortest_path(start: (usize, usize), target: (usize, usize), fields: &[Vec<Vec<bool>>], round_offset: usize) -> usize {
     let mut queue = vec![start];
-    let mut round = 0;
+    let mut round = round_offset;
     let mut visited = HashSet::new();
 
     loop {
-        let obstacle_field = &obstacle_fields[round % obstacle_fields.len()];
+        let obstacle_field = &fields[round % fields.len()];
         let mut next_queue = Vec::new();
 
         while let Some((y, x)) = queue.pop() {
             if (y, x) == target {
-                return round as u32;
+                return round - round_offset;
             }
 
             if obstacle_field[y][x] {
@@ -94,13 +50,13 @@ fn part1(input: &str) -> u32 {
             if y > 0 {
                 next_queue.push((y - 1, x));
             }
-            if y < field.len() - 1 {
+            if y < obstacle_field.len() - 1 {
                 next_queue.push((y + 1, x));
             }
             if x > 0 {
                 next_queue.push((y, x - 1));
             }
-            if x < field[0].len() - 1 {
+            if x < obstacle_field[0].len() - 1 {
                 next_queue.push((y, x + 1));
             }
         }
@@ -169,8 +125,59 @@ fn print_field(field: &Vec<Vec<char>>, storms: &[(usize, usize, Direction)]) {
     println!();
 }
 
+fn parse_input(input: &str) -> Vec<Vec<Vec<bool>>> {
+    let field = input.lines()
+        .map(|line| line.chars().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    let mut storms = field.iter()
+        .enumerate()
+        .flat_map(|(y, row)| {
+            row.iter()
+                .enumerate()
+                .filter(|(_, &cell)| cell != '#' && cell != '.')
+                .map(move |(x, &cell)| (y, x, match cell {
+                    '^' => Direction::Up,
+                    'v' => Direction::Down,
+                    '<' => Direction::Left,
+                    '>' => Direction::Right,
+                    _ => unreachable!(),
+                }))
+        })
+        .collect::<Vec<_>>();
+
+    let mut obstacle_field = field.iter().map(|row| {
+        row.into_iter().map(|&cell| cell == '#').collect::<Vec<_>>()
+    }).collect::<Vec<_>>();
+
+    for &(y, x, _) in &storms {
+        obstacle_field[y][x] = true;
+    }
+
+    let mut obstacle_fields = vec![obstacle_field];
+    loop {
+        let (storms_new, obstacle_field) = move_storms(&storms, &field);
+        if obstacle_field == obstacle_fields[0] {
+            break;
+        }
+        storms = storms_new;
+        obstacle_fields.push(obstacle_field);
+    }
+
+    obstacle_fields
+}
+
 fn part2(input: &str) -> u32 {
-    0
+    let obstacle_fields = parse_input(input);
+
+    let start = (0, 1);
+    let target = (obstacle_fields[0].len() - 1, obstacle_fields[0][0].len() - 2);
+
+    let r1 = shortest_path(start, target, &obstacle_fields, 0);
+    let r2 = shortest_path(target, start, &obstacle_fields, r1);
+    let r3 = shortest_path(start, target, &obstacle_fields, r1 + r2);
+
+    (r1 + r2 + r3) as u32
 }
 
 #[cfg(test)]
@@ -188,7 +195,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(TEST_INPUT_1), 0);
-        assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2(TEST_INPUT_1), 54);
+        assert_eq!(part2(INPUT), 869);
     }
 }
