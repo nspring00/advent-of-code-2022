@@ -7,15 +7,7 @@ fn main() {
 }
 
 fn part1(input: &str) -> u32 {
-    let mut elves = input.lines()
-        .enumerate()
-        .flat_map(|(r, l)| l
-            .chars()
-            .enumerate()
-            .filter(|(_, c)| *c == '#')
-            .map(move |(c, _)| (r as i32, c as i32)))
-        .collect::<HashSet<_>>();
-
+    let mut elves = parse_input(input);
     let mut dir_order = [0, 2, 3, 1];
 
     // print_map(&elves);
@@ -33,6 +25,17 @@ fn part1(input: &str) -> u32 {
     let max_y = *elves.iter().map(|(y, _)| y).max().unwrap();
 
     (max_y - min_y + 1) as u32 * (max_x - min_x + 1) as u32 - elves.len() as u32
+}
+
+fn parse_input(input: &str) -> HashSet<(i32, i32)> {
+    input.lines()
+        .enumerate()
+        .flat_map(|(r, l)| l
+            .chars()
+            .enumerate()
+            .filter(|(_, c)| *c == '#')
+            .map(move |(c, _)| (r as i32, c as i32)))
+        .collect::<HashSet<_>>()
 }
 
 fn simulate_round(elves: &HashSet<(i32, i32)>, dir_order: &[usize; 4]) -> HashSet<(i32, i32)> {
@@ -126,7 +129,21 @@ fn print_map(elves: &HashSet<(i32, i32)>) {
 
 
 fn part2(input: &str) -> u32 {
-    0
+    let mut elves = parse_input(input);
+    let mut dir_order = [0, 2, 3, 1];
+
+    let mut round = 1;
+    loop {
+        let elves_new = simulate_round(&elves, &dir_order);
+        dir_order.rotate_left(1);
+        if elves_new == elves {
+            break;
+        }
+        elves = elves_new;
+        round += 1;
+    }
+
+    return round;
 }
 
 #[cfg(test)]
@@ -175,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(TEST_INPUT_1), 0);
-        assert_eq!(part2(INPUT), 0);
+        assert_eq!(part2(TEST_INPUT_1), 20);
+        assert_eq!(part2(INPUT), 950);
     }
 }
